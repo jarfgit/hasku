@@ -1,77 +1,38 @@
 > import Data.Char
 > import Data.List
+> import System.Random
+
 
 > vowels     = ['a','e','i','o','u','é']
 > semiVowels = ['y']
-> vocab  	 = [] 
+> vocab  	 = ["Beyoncé","abracadabra","alligators","blue","bright","burning","call","candle",
+>               "carpe diem","cat","chrysalis","city","code","communicate","compile","computer", "clone",
+>               "danger","data","diamond","doom","electric","eleven","energy","epic","eternity",
+>               "eye","flower","forest","forever","garden","ghost","goth","grow","hymnal","illuminati",
+>               "infinite","inspire","jungle","kernel","laser","love","memory","mirth","mystery",
+>               "mythic","new","no","nonsense","order","personality","photosynthesis","poem","poetry",
+>               "program","pyramid","rage","raven","red","rhyme","robot","rose","safe","screen",
+>               "secret","serendipity","shh","shoe","silly","skulls","sky","spider","stars","street",
+>               "style","sun","sunset","sushi","synchronicity","tablet","tall","the","toe","transcend",
+>               "triangle","tyger","type","unicorn","urchin","us","vanilla","violets","volcano","wary",
+>               "waste","we","whale","why","wild","wind","wiry","with","yesterday"]
+
+
+-- > vocab  	 = ["a","aa","aaa","aaaa","aaaaa"] 
+
 
 
 ** WORDS WITH NO VOWELS **
 These are almost non-existent but easy to check for (so why not)
 
-> hasVowels       :: [Char] -> Bool
-> hasVowels []     = False 
-> hasVowels (x:xs) = if elem x (vowels ++ semiVowels)
 
--- > hasVowels (x:xs) = if elem x vowels || x == 'y'
-
->						then True
->						else hasVowels xs
+> hasVowels          :: String -> Bool
+> hasVowels           = any (\x -> elem x (vowels ++ semiVowels))
 
 
-** CONSONANT + "LE" AS FINAL SYLLABLE **
 
-Step 1: is 'e' the final char?  
-Note: This should be checked separately to rule out words that don't end with e.
-
-> endsWithE        :: [Char] -> Bool
-> endsWithE []      = False
-> endsWithE [x]     = False
-> endsWithE xs      = if last xs == 'e' then True else False
-
-Step 2: is last 'e' preceeded by 'l'? 
-
-> isLBeforeE       :: [Char] -> Bool
-> isLBeforeE []     = False
-> isLBeforeE [x]    = False
-> isLBeforeE xs     = if ((length xs) >= 2) && head (tail (reverse xs)) == 'l' then True else False 
-
-Step 3: is "le" preceeded by a consonant?
-
-> isConBeforeLE     :: [Char] -> Bool
-> isConBeforeLE []   = False
-> isConBeforeLE [x]  = False
-> isConBeforeLE xs   = if ((length xs) >= 3) && elem (last (take 3 (reverse xs))) vowels then False else True 
-
-Step 4: is "e" silent?
-
-> isESilent         :: [Char] -> Bool
-> isESilent []       = False
-> isESilent [x]      = False
-> isESilent xs       = if endsWithE xs && isLBeforeE xs && isConBeforeLE xs then False else True 
-
-//TRUE + TRUE = FALSE
-
-Test:
-
-*Main> testString = "The little table has a tale to tell"
-*Main> map isESilent $ words testString
-[True,False,False,True,False,True,True,True]
-
-Would only modify the elements that evaluate to False. Ignore any that evaluate to True.
-
-Step 5: if 'e' is not silent, drop the last three character to modify the string, increment syllable count 
-
-> dropConBeforeLE           :: ([Char], [Char], Int) -> ([Char], [Char], Int)
-> dropConBeforeLE ([], y, n) = ([], y, n) -- !!! MAY NEED TO REVISIT THIS AS AN ERROR?
-> dropConBeforeLE (x, [], n) = (x, [], n)
-> dropConBeforeLE (x, y, n)  = if not (isESilent x) 
->									then (x, reverse (tail (reverse y)), n + 1) -- (x, reverse (drop 3 (reverse y)), n + 1) will drop + consonant +le
-> 									else (x, y, n)
-
-
-** DEALING WITH 'Y'
-A vowel + 'y' creates a vowel sound, so these cases can be dealt with as diphthongs.
+** DEALING WITH 'Y' **
+A vowel + 'y' creates a vowel sound, so these cases can be dealt with as a diphthong.
 When a word begins with the letter 'y' whether it is a vowel depends on the following letter.
 
 When is 'y' a vowel?
@@ -89,35 +50,214 @@ FALSE:
 
 SPECIAL CASES: 
 'y' is in the middle && consonant : 'y' : vowel 
-F - (ex. "lawyer", "canyon") 
 T - (ex. "myopic", "cryogenesis") exception might be if vowel is an 'o'?
 T - (ex. "crying") might be solved by dropping prefixes and suffixes prior to parsing vowels? 
 
 
 Takes a string and returns a list of boolean values: True if char is a vowel False if not
 
-> mapVowels						:: [Char] -> [Bool]
-> mapVowels []				 	 = [] 
-> mapVowels (x:xs) 			 	 = elem x vowels : mapVowels xs 
+> mapVs		    	 :: String -> [Bool]
+> mapVs []	  	 	  = [] 
+> mapVs (x:xs) 		  = elem x vowels : mapVs xs 
 
-Takes a string and returns a list of indices for all occurances of the letter 'y'
+Takes a string and returns a list of indices for all occurrences of the letter 'y'
 
-> indexSemi					:: [Char] -> [Int]
-> indexSemi	[]               = []
-> indexSemi x 	         	 = findIndices (=='y') x
+> indexSemiVs		 :: String -> [Int]
+> indexSemiVs []      = []
+> indexSemiVs x  	  = findIndices (=='y') x --- check for all values in semiVowel list
 
 Modifies a list of boolean values for all vowels in a string accounting for special cases of the letter 'y'
 
-> mapSemiVowels                 :: [Int] -> [Bool] -> [Bool]
-> mapSemiVowels [] bs            = bs
-> mapSemiVowels ns []            = []
-> mapSemiVowels (n:ns) bs		 
->								 | n == 0 && not next = mapSemiVowels ns (replaceAt bs True n) 
->								 | n == (length bs - 1) && not prev = mapSemiVowels ns (replaceAt bs True n) 
->								 | 0 < n && n > (length bs -1) && not prev && not next = mapSemiVowels ns (replaceAt bs True n)  
->								 | otherwise = mapSemiVowels ns bs
->								  where prev = (bs !! (n-1))
->								    	next = (bs !! (n+1)) 
+> mapSemiVs          :: [Int] -> [Bool] -> [Bool]
+> mapSemiVs [] bs     = bs
+> mapSemiVs ns []     = []
+> mapSemiVs (n:ns) bs  		 
+>					  | n == 0 && not next = mapSemiVs ns (replaceAt bs True n) 
+>				  	  | n == endIndex bs && not prev = mapSemiVs ns (replaceAt bs True n) 
+>					  | 0 < n && n < endIndex bs && not prev && not next = mapSemiVs ns (replaceAt bs True n)  
+>					  | otherwise = mapSemiVs ns bs
+>					  where prev = (bs !! (n-1))
+>			 		    	next = (bs !! (n+1)) 
+
+Combines functions above to return a tuple that countains the original string and a list of booleans that correspond to each character's vowel status
+
+> mapAllVowels		 :: String -> (String, [Bool])
+> mapAllVowels xs 	  = (xs, mapSemiVs (indexSemiVs xs) (mapVs xs))  
+
+
+
+** CONSONANT + "LE" AS FINAL SYLLABLE **
+
+> endsWithE          :: String -> Bool
+> endsWithE []        = False
+> endsWithE xs        = last xs == 'e' 
+
+
+-- > isESilent          :: String -> Bool
+-- > isESilent xs 	   
+-- > 				      | vowelCount == 1 = False -- If there is only one vowel (e.g. "the" = False, "toe" = True) 
+-- >				      | not (endsWithE xs) = False 
+-- >                     | elem lastThree (map (:"le") vowels) || tail lastThree /= "le" = True -- If last three letters are vowel : "le" then True
+-- >				      | otherwise = False  
+-- >				      where lastThree = drop (length xs - 3) xs
+-- >				            vowelCount = length $ filter (== True) (snd $ mapAllVowels xs)
+
+
+> isESilent          :: String -> Bool
+> isESilent xs 	   
+> 				      | not (endsWithE xs) = False
+>				      | vowelCount == 1 = False -- If there is only one vowel (e.g. "the" = False, "toe" = True)  
+>                     | tail lastThree == "le" && notElem lastThree (map (:"le") vowels) = False 
+>                     | otherwise = True
+>				      where lastThree = drop (length xs - 3) xs
+>				            vowelCount = length $ filter (== True) (snd $ mapAllVowels xs)
+
+
+> mapSilentE	     :: (String, [Bool]) -> (String, [Bool])
+> mapSilentE (x, y)
+>					  | endsWithE x && isESilent x = (x, replaceAt y False (endIndex y))
+>					  | otherwise = (x, y)
+
+
+** WHAT TO DO WITH Q and U **
+
+
+** COMBINE ALL PARSING FUNCTIONS **
+
+Calls all syllable parsing functions on a string and returns an Int representing the number of True in list of Bools
+	
+	* Confirm word has vowels, if not return 1
+	* Map all vowels and semivowels
+	* Account for silent 'e'
+
+	This order works for eye, tye 
+
+> count	             :: String -> Int
+> count []  		  = 0
+> count xs
+>			          | not (hasVowels xs) = 1
+>			          | otherwise = length $ filter (== True) (snd $ mapSilentE $ mapAllVowels xs)
+
+
+
+** COMPOSE HAIKU **
+Takes a syllable count, and empty list and returns a random list of words where the total syllable count matches the argument
+                     
+
+> randWord            :: IO String 
+> randWord             = do i <- randomRIO (0, length vocab - 1)
+>                          return (vocab !! i) 
+
+
+> compose            :: Int -> [String] -> IO [String]
+> compose 0 xs        = return xs
+> compose n xs        = do word <- randWord
+>                          let syllables = count word 
+>                          if n >= syllables then compose (n - syllables) (word:xs)
+>                             else compose n xs
+
+
+> hasku 		     :: IO ()
+> hasku 		      = do 
+>                         x <- compose 5 []
+>                         y <- compose 7 []
+>                         z <- compose 5 []
+>                         putStrLn $ unlines $ [unwords x] ++ [unwords y] ++ [unwords z]
+
+
+
+** UTILITY FUNCTIONS **
+
+Replaces a list item with a different value at a given index 
+
+> replaceAt	         :: [a] -> a -> Int -> [a]
+> replaceAt [] _ _    = []
+> replaceAt x y n
+>					  | n == 0 = [y] ++ tail x 
+>					  | n == endIndex x =  init x ++ [y]
+>					  | otherwise = take (n) x ++ [y] ++ drop (n + 1) x
+
+
+Returns the last index in a list 
+
+> endIndex	 	     :: [a] -> Int
+> endIndex [] 		  = 0
+> endIndex x  		  = length x - 1 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// OLD STUFF 
+
+-- Step 1: is 'e' the final char?  
+
+-- > endsWithE        :: String -> Bool
+-- > endsWithE []      = False
+-- > endsWithE xs      = if last xs == 'e' then True else False
+
+-- Step 2: does it end with "le" preceeded by a consonant?
+
+-- > isConBeforeLE     :: [Char] -> Bool
+-- > isConBeforeLE []   = False
+-- > isConBeforeLE xs   = if elem (head (drop (length xs - 3) xs)) vowels then False else True  
+
+-- -- Step 3: is "e" silent?
+
+-- > isESilent         :: [Char] -> Bool
+-- > isESilent []       = False
+-- > isESilent xs       = if endsWithE xs && isConBeforeLE xs then False else True 
+
+//TRUE + TRUE = FALSE
+
+STREAMLINED:
+
+
+-- > isESilent       :: [Char] -> Bool
+-- > isESilent xs 	   
+-- > 				   | length (filter (==True) (mapVowels xs)) == 1 = False -- If there is only one 'e' (e.g. "the" = False, "toe" = True) 
+-- >				   | length xs <= 3 && length (filter (==True) (mapVowels xs)) > 1 = True 
+-- >				   | otherwise = elem (reverse (take 3 (reverse xs))) (map (:"le") vowels)
+
+-- > isESilent       :: [Char] -> Bool
+-- > isESilent xs 	   
+-- > 				   | length (filter (==True) (mapVowels xs)) == 1 = False -- If there is only one 'e' (e.g. "the" = False, "toe" = True) 
+-- > 				   | length (filter (==True) (mapVowels xs)) > 1 = True
+-- >				   | otherwise = elem lastThree (map (:"le") vowels)
+-- >				   where lastThree = reverse (take 3 (reverse xs))
+-- >						  
+
+
+
+
+Test:
+
+*Main> testString = "The little table has a tale to tell"
+*Main> map isESilent $ words testString
+[True,False,False,True,False,True,True,True]
+
+Would only modify the elements that evaluate to False. Ignore any that evaluate to True.
+
+Step 5: if 'e' is not silent, drop the last three character to modify the string, increment syllable count 
+
+-- > dropConBeforeLE           :: ([Char], [Char], Int) -> ([Char], [Char], Int)
+-- > dropConBeforeLE ([], y, n) = ([], y, n) -- !!! MAY NEED TO REVISIT THIS AS AN ERROR?
+-- > dropConBeforeLE (x, [], n) = (x, [], n)
+-- > dropConBeforeLE (x, y, n)  = if not (isESilent x) 
+-- >									then (x, reverse (tail (reverse y)), n + 1) -- (x, reverse (drop 3 (reverse y)), n + 1) will drop + consonant +le
+-- > 									else (x, reverse (tail (reverse y)), n)
+
+
 
 
 
@@ -174,16 +314,17 @@ For each vowel in the modified string, remove it, and increment syllable count
 
 First pass at removing vowels - does not account for 'y'
 
-> dropVowels             	:: [Char] -> ([Char], [Char], Int) -> ([Char], [Char], Int)
-> dropVowels [] (x, y, n)    = (x, y, n)
-> dropVowels (v:vs) (x, y, n)  = if elem v y 
->									then dropVowels vs (x, filter (/=v) y, n + length (filter (==v) y))
->									else dropVowels vs (x, y, n)
+-- > dropVowels             	  :: [Char] -> ([Char], [Char], Int) -> ([Char], [Char], Int)
+-- > dropVowels [] (x, y, n)      = (x, y, n)
+-- > dropVowels (v:vs) (x, y, n)  = if elem v y 
+-- >									then dropVowels vs (x, filter (/=v) y, n + length (filter (==v) y))
+-- >									else dropVowels vs (x, y, n)
+
+-- > countVowels	:: ([Char], [Bool]) -> ([Char], [Bool]) 
+-- > countVowels ([], y) = 
+-- > countVowels (x, y) =  
 
 
-
-
-** COMBINE ALL PARSING FUNCTIONS 
 
 Call all syllable parsing functions on a string and return a triple with ("originalString", "modifiedString", syllableCount) in the following order:
 	
@@ -192,11 +333,12 @@ Call all syllable parsing functions on a string and return a triple with ("origi
 	* Parse all remaining vowels 
 
 
-> countSyllables    :: [Char] -> ([Char], [Char], Int)
-> countSyllables []  = ([], [], 0)
-> countSyllables x   = if hasVowels x 
->									then dropVowels vowels (dropConBeforeLE (x, x, 0))
->									else (x, x, 1) -- words that have no vowels do have 1 syllable
+-- > countSyllables    :: [Char] -> ([Char], [Char], Int)
+-- > countSyllables []  = ([], [], 0)
+-- > countSyllables x   = if hasVowels x 
+-- >									then dropVowels vowels (dropConBeforeLE (x, x, 0))
+-- >									else (x, x, 1) -- words that have no vowels do have 1 syllable
+
 
 Test: 
 
@@ -214,21 +356,5 @@ Test with word with no vowels
 Tests with list of all vowels:
 *Main> dropVowels "adorable"
 ("adorable","drbl",4)
-
-
-
-** COMPOSE HAIKU **
-
-** UTILITY FUNCTIONS **
-
-Replaces a list item with a different value at a given index 
-
-> replaceAt	 :: [a] -> a -> Int -> [a]
-> replaceAt x y n
->					| n == 0 = [y] ++ tail x 
->					| n == (length x - 1) = reverse ([y] ++ tail (reverse x))
->					| 0 < n && n < length x - 1 = take (n) x ++ [y] ++ drop (n+1) x
->					| otherwise = undefined
-
 
 
