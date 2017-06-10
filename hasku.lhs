@@ -13,7 +13,7 @@
 >               "mythic","new","no","nonsense","order","personality","photosynthesis","poem","poetry",
 >               "program","pyramid","rage","raven","red","rhyme","robot","rose","safe","screen",
 >               "secret","serendipity","shh","shoe","silly","skulls","sky","spider","stars","street",
->               "style","sun","sunset","sushi","synchronicity","tablet","tall","the","toe","transcend",
+>               "sun","sunset","sushi","synchronicity","tablet","tall","the","toe","transcend",
 >               "triangle","tyger","type","unicorn","urchin","us","vanilla","violets","volcano","wary",
 >               "waste","we","whale","why","wild","wind","wiry","with","yesterday"]
 
@@ -60,11 +60,6 @@ Takes a string and returns a list of boolean values: True if char is a vowel Fal
 > mapVs []	  	 	  = [] 
 > mapVs (x:xs) 		  = elem x vowels : mapVs xs 
 
-Takes a string and returns a list of indices for all occurrences of the letter 'y'
-
-> indexSemiVs		 :: String -> [Int]
-> indexSemiVs []      = []
-> indexSemiVs x  	  = findIndices (=='y') x --- check for all values in semiVowel list
 
 Modifies a list of boolean values for all vowels in a string accounting for special cases of the letter 'y'
 
@@ -79,11 +74,19 @@ Modifies a list of boolean values for all vowels in a string accounting for spec
 >					  where prev = (bs !! (n-1))
 >			 		    	next = (bs !! (n+1)) 
 
+
+** WHAT TO DO WITH 'Q' AND 'U' **
+
+> mapQandU			:: [Int] -> [Bool] -> [Bool]
+> mapQandU [] bs     = bs 
+> mapQandU ns []     = []
+> mapQandU (n:ns) bs = replaceAt bs False (n + 1)
+
+
 Combines functions above to return a tuple that countains the original string and a list of booleans that correspond to each character's vowel status
 
 > mapAllVowels		 :: String -> (String, [Bool])
-> mapAllVowels xs 	  = (xs, mapSemiVs (indexSemiVs xs) (mapVs xs))  
-
+> mapAllVowels xs 	  = (xs, intersect (mapQandU (findIndices(=='q') xs) (mapVs xs)) (mapSemiVs (findIndices (=='y') xs) (mapVs xs)))
 
 
 ** CONSONANT + "LE" AS FINAL SYLLABLE **
@@ -91,16 +94,6 @@ Combines functions above to return a tuple that countains the original string an
 > endsWithE          :: String -> Bool
 > endsWithE []        = False
 > endsWithE xs        = last xs == 'e' 
-
-
--- > isESilent          :: String -> Bool
--- > isESilent xs 	   
--- > 				      | vowelCount == 1 = False -- If there is only one vowel (e.g. "the" = False, "toe" = True) 
--- >				      | not (endsWithE xs) = False 
--- >                     | elem lastThree (map (:"le") vowels) || tail lastThree /= "le" = True -- If last three letters are vowel : "le" then True
--- >				      | otherwise = False  
--- >				      where lastThree = drop (length xs - 3) xs
--- >				            vowelCount = length $ filter (== True) (snd $ mapAllVowels xs)
 
 
 > isESilent          :: String -> Bool
@@ -118,8 +111,6 @@ Combines functions above to return a tuple that countains the original string an
 >					  | endsWithE x && isESilent x = (x, replaceAt y False (endIndex y))
 >					  | otherwise = (x, y)
 
-
-** WHAT TO DO WITH Q and U **
 
 
 ** COMBINE ALL PARSING FUNCTIONS **
@@ -144,14 +135,14 @@ Calls all syllable parsing functions on a string and returns an Int representing
 Takes a syllable count, and empty list and returns a random list of words where the total syllable count matches the argument
                      
 
-> randWord            :: IO String 
-> randWord             = do i <- randomRIO (0, length vocab - 1)
+> randomW            :: IO String 
+> randomW             = do i <- randomRIO (0, length vocab - 1)
 >                          return (vocab !! i) 
 
 
 > compose            :: Int -> [String] -> IO [String]
 > compose 0 xs        = return xs
-> compose n xs        = do word <- randWord
+> compose n xs        = do word <- randomW
 >                          let syllables = count word 
 >                          if n >= syllables then compose (n - syllables) (word:xs)
 >                             else compose n xs
